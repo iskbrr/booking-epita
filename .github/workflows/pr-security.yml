@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: returntocorp/semgrep:1.161.0
-      steps:
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
