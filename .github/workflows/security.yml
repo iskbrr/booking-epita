@@ -14,7 +14,7 @@ permissions:
 
 jobs:
 
-  # Job #1 : Dependencies Analysis
+  
   dependencies-analysis:
     name: Dependencies Analysis
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
           sarif_file: DependenciesAnalysisFull.sarif
           category: dependencies-analysis
 
-  # Job #2 : Source Code Analysis (SAST)
+  
   source-code-analysis:
     name: Source Code Analysis
     runs-on: ubuntu-latest
