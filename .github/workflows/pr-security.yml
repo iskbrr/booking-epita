@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
 
       # Run OSV Scanner AFTER PR (new code)
       - name: Run OSV Scanner after PR
