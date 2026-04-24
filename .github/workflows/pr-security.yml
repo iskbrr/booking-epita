@@ -1,0 +1,92 @@
+---
+name: pr-security
+
+on:
+  pull_request:
+
+permissions:
+  actions: read
+  security-events: write
+  contents: read
+
+jobs:
+
+  # Job #1 : Dependencies Analysis
+  dependencies-analysis:
+    name: dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Run OSV Scanner AFTER PR (new code)
+      - name: Run OSV Scanner after PR
+        uses: google/osv-scanner-action/osv-scanner-action@v2.0.0
+        with:
+          scan-args: |-
+            --format sarif
+            --output after.sarif
+            ./
+        continue-on-error: true
+
+      # Switch to baseline commit (before PR)
+      - name: Checkout baseline commit
+        run: |
+          git checkout ${{ github.event.pull_request.base.sha }}
+
+      # Run OSV Scanner BEFORE PR (baseline)
+      - name: Run OSV Scanner before PR
+        uses: google/osv-scanner-action/osv-scanner-action@v2.0.0
+        with:
+          scan-args: |-
+            --format sarif
+            --output before.sarif
+            ./
+        continue-on-error: true
+
+      # Compare before vs after → differential report
+      - name: Compare OSV Reports
+        uses: google/osv-scanner-action/osv-reporter-action@v2.0.0
+        with:
+          scan-args: |-
+            --format sarif
+            --output diff.sarif
+            --new after.sarif
+            --old before.sarif
+        continue-on-error: true
+
+      # Save differential report as artifact
+      - name: Save report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DependenciesAnalysisDiff
+          path: diff.sarif
+
+  # Job #2 : Source Code Analysis (SAST)
+  source-code-analysis:
+    name: source-code-analysis
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep@sha256:aba64aaf601ff71b769b082d3c9f95cb02a2bb20a6404f42ae94f240aec6ace7
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for baseline comparison
+
+      # Differential analysis : only new code
+      - name: Run Semgrep differential analysis
+        run: |
+          semgrep scan \
+            --config .semgrep \
+            --sarif \
+            --output semgrep.sarif \
+            --baseline-commit ${{ github.event.pull_request.base.sha }}
+        continue-on-error: true
+
+      # Save report as artifact
+      - name: Save Semgrep report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SourceCodeAnalysisDiff
+          path: semgrep.sarif
