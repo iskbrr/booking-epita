@@ -84,7 +84,7 @@ jobs:
             --sarif \
             --output semgrep.sarif \
             --baseline-commit ${{ github.event.pull_request.base.sha }}
-        continue-on-error: true
+        continue-on-error: false
 
       
       - name: Save Semgrep report as artifact
